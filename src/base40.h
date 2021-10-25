@@ -3,9 +3,9 @@
 
 #include <inttypes.h>
 
-#define MAX_MISSION_ID  6
+#define BASE40_FIELD_MAX_CHARS  6
 
-uint32_t encode_mission_id(char* mission_id);
-char* decode_mission_id(char* mission_id, uint32_t code);
+uint32_t base40_encode(char* data);
+char* base40_decode(char* data, uint32_t code);
 
 #endif

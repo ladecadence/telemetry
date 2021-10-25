@@ -1,16 +1,16 @@
 #include "base40.h"
 
-uint32_t encode_mission_id(char* mission_id)
+uint32_t base40_encode(char* data)
 {
 	uint32_t x;
 	char* c;
 	
-	/* point c at the end of the mission_id, maximum of 6 characters */
-	for(x = 0, c = mission_id; x < MAX_MISSION_ID && *c; x++, c++);
+	/* point c at the end of the data, maximum of 6 characters */
+	for(x = 0, c = data; x < BASE40_FIELD_MAX_CHARS && *c; x++, c++);
 	
 	/* encode it backwards */
 	x = 0;
-	for(c--; c >= mission_id; c--)
+	for(c--; c >= data; c--)
 	{
 		x *= 40;
 		if(*c >= 'A' && *c <= 'Z') x += *c - 'A' + 14;
@@ -21,17 +21,17 @@ uint32_t encode_mission_id(char* mission_id)
 	return(x);
 }
 
-char* decode_mission_id(char* mission_id, uint32_t code)
+char* base40_decode(char* data, uint32_t code)
 {
 	char* c;
     char s;
 	
-	*mission_id = '\0';
+	*data = '\0';
 	
 	/* is mission_id valid? */
-	if(code > 0xF423FFFF) return(mission_id);
+	if(code > 0xF423FFFF) return(data);
 	
-	for(c = mission_id; code; c++)
+	for(c = data; code; c++)
 	{
 		s = code % 40;
 		if(s == 0) *c = '-';
@@ -42,6 +42,6 @@ char* decode_mission_id(char* mission_id, uint32_t code)
 	}
 	*c = '\0';
 	
-	return(mission_id);
+	return(data);
 }
 

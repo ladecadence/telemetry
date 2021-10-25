@@ -4,7 +4,7 @@
 telemetry_packet_t* telemetry_create_packet(uint8_t number_fields) 
 {
     /* check max number of fields */
-    if (number_fields > MAX_TELEMETRY_FIELDS) {
+    if (number_fields > TELEMETRY_MAX_FIELDS) {
         return NULL;
     }
     
@@ -14,7 +14,7 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     packet->len = number_fields + 3;
     
     /* reserve data (fields + start + crc + end * bytes per field)  */
-    uint8_t* data = calloc((packet->len * BYTES_PER_FIELD), sizeof(uint8_t));
+    uint8_t* data = calloc((packet->len * TELEMETRY_BYTES_PER_FIELD), sizeof(uint8_t));
     
     /* check if allocated  */
     if (!data) {
@@ -24,18 +24,29 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     packet->data = data;
     
     /* write base data */
-    telemetry_write_field_uint32(packet, START_MARKER, 0);
-    telemetry_write_field_uint32(packet, END_MARKER, packet->len-1);
+    telemetry_write_field_uint32(packet, TELEMETRY_START_MARKER, 0);
+    telemetry_write_field_uint32(packet, TELEMETRY_END_MARKER, packet->len-1);
     
     /*  recalculate CRC */
-    uint32_t crc = crc32(&packet->data[1*BYTES_PER_FIELD], (packet->len-3) * BYTES_PER_FIELD);
-    for (int i=0; i<BYTES_PER_FIELD; i++) {
-        packet->data[((packet->len-2) * BYTES_PER_FIELD) + i] = crc >> i*8;
+    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    for (int i=0; i<TELEMETRY_BYTES_PER_FIELD; i++) {
+        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
     
     return packet;
 }
 
+
+
+void telemetry_delete_packet(telemetry_packet_t* packet) {
+    // free allocated memory
+    if (packet != NULL) {
+        if (packet->data != NULL) {
+            free(packet->data);
+        }
+        free (packet);
+    }
+}
 
 
 uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, uint8_t field_number) 
@@ -46,14 +57,14 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
     }
     
     /* write data */
-    for (int i=0; i<BYTES_PER_FIELD; i++) {
-        packet->data[(field_number * BYTES_PER_FIELD) + i] = data >> i*8;
+    for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
+        packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] = data >> i*8;
     }
     
     /*  recalculate CRC */
-    uint32_t crc = crc32(&packet->data[1*BYTES_PER_FIELD], (packet->len-3) * BYTES_PER_FIELD);
-    for (int i=0; i<BYTES_PER_FIELD; i++) {
-        packet->data[((packet->len-2) * BYTES_PER_FIELD) + i] = crc >> i*8;
+    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
+        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
     
     return EXIT_SUCCESS;                                                                                                
@@ -89,8 +100,8 @@ uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_n
     }
     
     uint32_t data = 0;
-    for (int i=BYTES_PER_FIELD-1; i>=0; i--) {
-        data += packet->data[(field_number * BYTES_PER_FIELD) + i] << 8*i;
+    for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
+        data += packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
     
     return data;
