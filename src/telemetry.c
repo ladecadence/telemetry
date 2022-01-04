@@ -56,6 +56,9 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
         return EXIT_FAILURE;
     }
     
+    /* use network byte order */
+    data =  htonl(data);
+
     /* write data */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] = data >> i*8;
@@ -104,7 +107,8 @@ uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_n
         data += packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
     
-    return data;
+    /* check network byte order */
+    return ntohl(data);
 }
 
 

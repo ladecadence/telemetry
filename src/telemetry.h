@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <string.h>
 
-
 #include "crc32.h"
 #include "base40.h"
 
@@ -34,6 +33,23 @@
 
 #define TELEMETRY_START_MARKER          0xAA55AA55
 #define TELEMETRY_END_MARKER            0xEEDDEEDD
+
+
+/* Network byte order */
+
+#define __bswap_32(x) \
+     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) |                \
+      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define ntohl(x) x
+#define htonl(x) x
+#else
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define ntohl(x)  __bswap_32 (x)
+#  define htonl(x)  __bswap_32 (x)
+# endif
+#endif
 
 typedef struct {
   uint8_t* data;

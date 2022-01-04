@@ -6,7 +6,8 @@ microcontrollers and low speed radio links.
 Packet data is a byte array with a fixed length of 4 bytes per data field, so 
 each field can be used as a 32bit integer or a single precision float. A type
 field can define other packet types and payloads with different internal
-structure.
+structure. To avoid endiannes problems, the library uses network byte order 
+(big-endian) to store and transmit data.
 
 # Fields
 
