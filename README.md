@@ -4,7 +4,7 @@ microcontrollers and low speed radio links.
 # Data format
 
 Packet data is a byte array with a fixed length of 4 bytes per data field, so 
-each field can be used as a 32bit integer or a single precision float. A type
+each field can be used as a 32 bit integer or a single precision float. A type
 field can define other packet types and payloads with different internal
 structure. To avoid endiannes problems, the library uses network byte order 
 (big-endian) to store and transmit data.
@@ -12,7 +12,7 @@ structure. To avoid endiannes problems, the library uses network byte order
 # Fields
 
 LoRa payload is maximum 255 bytes, so 255/4 = 63 Max fields:
-Start marker + payload + CRC + End marker = 60 fields (240b bytes) available 
+Start marker + payload + CRC + End marker = 60 fields (240 bytes) available 
 for the payload.
 
 ## Mandatory fields
@@ -21,6 +21,7 @@ for the payload.
 * 1: Field count       - uint32 (excluding start and end markers and CRC)
 * 2: Packet number     - uint32
 * 3: Packet type       - uint32 (0x77777777 - Telemetry packet)
+
 ... 
 
 * N-2: CRC32             - Int32 (excludes start and end markers)
@@ -36,6 +37,5 @@ for the payload.
 * 9: Longitude         - float (decimal)
 * 10: Altitude         - int32 (meters, shouldn't be negative, but can be)
 * 11: Heading          - uint32 (degrees)
-
 
 
