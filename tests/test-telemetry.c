@@ -15,7 +15,7 @@ int main(void) {
     printf("\n");
     
     /* insert uint32 */
-    telemetry_write_field_uint32(telem, 12, TELEMETRY_FIELD_COUNT);
+    telemetry_write_field_uint32(telem, 123, TELEMETRY_FIELD_PACKET_NUMBER);
     
     for (int i=0; i < telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
         printf("0x%.2x ", telem->data[i]);
@@ -40,17 +40,20 @@ int main(void) {
         printf("0x%.2x ", telem->data[i]);
     }
     printf("\n");
+
+    /* insert base40 data */
+    telemetry_write_field_uint32(telem,  base40_encode("EKI3"), TELEMETRY_FIELD_MISSION_ID);
+
     for (int i=0; i < telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
         printf("0x%.2x ", telem->data[i]);
     }
     printf("\n");
     
-    /* insert base40 data */
-    telemetry_write_field_uint32(telem,  base40_encode("EKI3"), TELEMETRY_FIELD_MISSION_ID);
-    
     
     /* extract data */
     printf("Field count: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_COUNT));
+    printf("Packet type: 0x%x\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_TYPE));
+    printf("Packet number: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_NUMBER));
     printf("Latitude: %f\n", telemetry_read_field_float(telem, TELEMETRY_FIELD_LATITUDE));
     printf("Altitude: %d\n", telemetry_read_field_int32(telem, TELEMETRY_FIELD_ALTITUDE));
     printf("ID: %s\n", base40_decode(base40_data, telemetry_read_field_uint32(telem, TELEMETRY_FIELD_MISSION_ID)));

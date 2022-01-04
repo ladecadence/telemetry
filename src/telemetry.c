@@ -24,11 +24,13 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     packet->data = data;
     
     /* write base data */
-    telemetry_write_field_uint32(packet, TELEMETRY_START_MARKER, 0);
-    telemetry_write_field_uint32(packet, TELEMETRY_END_MARKER, packet->len-1);
+    telemetry_write_field_uint32(packet, TELEMETRY_START_MARKER, TELEMETRY_FIELD_START); /* start marker */
+    telemetry_write_field_uint32(packet, TELEMETRY_END_MARKER, packet->len-1);           /* end marker */
+    telemetry_write_field_uint32 (packet, number_fields, TELEMETRY_FIELD_COUNT);         /* number of fields */
     
     /*  recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    crc = htonl(crc); /* endianness */
     for (int i=0; i<TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
@@ -66,6 +68,7 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
     
     /*  recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    crc = htonl(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
