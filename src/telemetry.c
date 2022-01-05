@@ -55,7 +55,7 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
 {
     /* check fields */
     if (field_number > packet->len) {
-        return EXIT_FAILURE;
+        return TELEMETRY_ERROR_FIELD;
     }
     
     /* use network byte order */
@@ -66,14 +66,14 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
         packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] = data >> i*8;
     }
     
-    /*  recalculate CRC */
+    /* recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
     crc = htonl(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
     
-    return EXIT_SUCCESS;                                                                                                
+    return TELEMETRY_OK;
 }
 
 
@@ -96,7 +96,37 @@ uint8_t telemetry_write_field_float(telemetry_packet_t* packet, float data, uint
     return telemetry_write_field_uint32(packet, intdata, field_number);
 }
 
+uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number)
+{
+    /* check field number, can't overwrite basic fields */
+    if (field_number < TELEMETRY_FIELD_VARIABLE) {
+        return TELEMETRY_ERROR_FIELD;
+    }
 
+    /* check len, must be aligned */
+    if (len % TELEMETRY_BYTES_PER_FIELD != 0) {
+        return TELEMETRY_ERROR_ALIGN;
+    }
+
+    /* and must fit */
+    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 3 - (field_number-1))) {
+        return TELEMETRY_ERROR_LENGTH;
+    }
+
+    /* ok, write it */
+    for (int i=0; i<len; i++) {
+        packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] = data[i];
+    }
+
+    /* recalculate CRC */
+    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    crc = htonl(crc); /* endianness */
+    for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
+        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
+    }
+
+    return TELEMETRY_OK;
+}
 
 uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_number) 
 {
@@ -140,4 +170,40 @@ float telemetry_read_field_float(telemetry_packet_t* packet, uint8_t field_numbe
     float data;
     memcpy(&data, &intdata, sizeof(data));
     return data;
+}
+
+
+packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len)
+{
+
+    /* check field counter */
+    uint32_t fields = 0;
+    for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
+        fields += data[(TELEMETRY_FIELD_COUNT * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
+    }
+
+    fields = ntohl(fields) + 3;
+
+
+    if (fields != (len)) {
+        return PACKET_BAD_FIELDS;
+    }
+
+    /* check CRC */
+    uint32_t data_crc = 0;
+    for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
+        data_crc += data[((len-2) * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
+    }
+
+    data_crc = ntohl(data_crc);
+
+    uint32_t calculated_crc = crc32(data+TELEMETRY_BYTES_PER_FIELD, (len-3) * TELEMETRY_BYTES_PER_FIELD);
+
+    if (data_crc != calculated_crc) {
+        return PACKET_BAD_CRC;
+    }
+
+    /* nothing bad detected */
+    return PACKET_OK;
+
 }
