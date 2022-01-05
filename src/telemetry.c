@@ -172,6 +172,32 @@ float telemetry_read_field_float(telemetry_packet_t* packet, uint8_t field_numbe
     return data;
 }
 
+uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number)
+{
+    /* check field number, basic fields are never raw data*/
+    if (field_number < TELEMETRY_FIELD_VARIABLE) {
+        return TELEMETRY_ERROR_FIELD;
+    }
+
+    /* check len, must be aligned */
+    if (len % TELEMETRY_BYTES_PER_FIELD != 0) {
+        return TELEMETRY_ERROR_ALIGN;
+    }
+
+    /* and must have enough data */
+    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 3 - (field_number-1))) {
+        return TELEMETRY_ERROR_LENGTH;
+    }
+
+    /* ok, read it */
+    for (int i=0; i<len; i++) {
+        data[i] = packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i];
+    }
+
+    return TELEMETRY_OK;
+
+}
+
 
 packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len)
 {

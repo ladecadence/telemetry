@@ -9,6 +9,7 @@ int main(void) {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
         0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
     };
+    uint8_t read_data[24];
 
     /* create packet */
     telem = telemetry_create_packet(9);
@@ -32,7 +33,6 @@ int main(void) {
 
     /* insert raw data */
     uint8_t status = telemetry_write_raw_data(telem, raw_data, 24, TELEMETRY_FIELD_VARIABLE);
-    printf("STATUS: %d\n", status);
 
     for (int i=0; i < telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
         printf("0x%.2x ", telem->data[i]);
@@ -55,6 +55,14 @@ int main(void) {
     } else {
         printf("Packet data not valid: %d\n", test);
     }
+
+    /* get raw data */
+    printf("Raw data: ");
+    status = telemetry_read_raw_data(telem, read_data, 24, TELEMETRY_FIELD_VARIABLE);
+    for (int i=0; i < 24; i++) {
+        printf("0x%.2x ", read_data[i]);
+    }
+    printf("\n");
 
     telemetry_delete_packet(telem);
 

@@ -86,7 +86,7 @@ uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_n
 int32_t telemetry_read_field_int32(telemetry_packet_t* packet, uint8_t field_number);
 float telemetry_read_field_float(telemetry_packet_t* packet, uint8_t field_number);
 uint32_t telemetry_read_crc32(telemetry_packet_t* packet);
-uint8_t* telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t len, uint8_t field_number);
+uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number);
 packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len);
 
 
