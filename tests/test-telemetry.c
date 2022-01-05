@@ -4,6 +4,9 @@
 int main(void) {
     telemetry_packet_t* telem;
     char base40_data[7];
+    uint32_t uintdata;
+    int32_t intdata;
+    float floatdata;
     
     /* create packet */
     telem = telemetry_create_packet(TELEMETRY_STANDARD_MIN_FIELDS);
@@ -42,7 +45,7 @@ int main(void) {
     printf("\n");
 
     /* insert base40 data */
-    telemetry_write_field_uint32(telem,  base40_encode("EKI3"), TELEMETRY_FIELD_MISSION_ID);
+    telemetry_write_field_uint32(telem, base40_encode("EKI3"), TELEMETRY_FIELD_MISSION_ID);
 
     for (int i=0; i < telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
         printf("0x%.2x ", telem->data[i]);
@@ -51,18 +54,25 @@ int main(void) {
     
     
     /* extract data */
-    printf("Field count: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_COUNT));
-    printf("Packet type: 0x%x\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_TYPE));
-    printf("Packet number: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_NUMBER));
-    printf("Latitude: %f\n", telemetry_read_field_float(telem, TELEMETRY_FIELD_LATITUDE));
-    printf("Altitude: %d\n", telemetry_read_field_int32(telem, TELEMETRY_FIELD_ALTITUDE));
-    printf("ID: %s\n", base40_decode(base40_data, telemetry_read_field_uint32(telem, TELEMETRY_FIELD_MISSION_ID)));
-    printf("CRC: 0x%x\n", telemetry_read_crc32(telem));
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_COUNT);
+    printf("Field count: %d\n", uintdata);
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_PACKET_TYPE);
+    printf("Packet type: 0x%x\n", uintdata);
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_PACKET_NUMBER);
+    printf("Packet number: %d\n", uintdata);
+    telemetry_read_field_float(telem, &floatdata, TELEMETRY_FIELD_LATITUDE);
+    printf("Latitude: %f\n", floatdata);
+    telemetry_read_field_int32(telem, &intdata, TELEMETRY_FIELD_ALTITUDE);
+    printf("Altitude: %d\n", intdata);
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_MISSION_ID);
+    printf("ID: %s\n", base40_decode(base40_data, uintdata));
+    telemetry_read_crc32(telem, &uintdata);
+    printf("CRC: 0x%x\n", uintdata);
     
     /* check data */
-    packet_valid_t test;
+    uint8_t test;
     test = telemetry_check_data(telem->data, telem->len);
-    if (test == PACKET_OK) {
+    if (test == TELEMETRY_OK) {
         printf("Packet data OK\n");
     } else {
         printf("Packet data not valid: %d\n", test);

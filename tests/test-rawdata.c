@@ -10,6 +10,7 @@ int main(void) {
         0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
     };
     uint8_t read_data[24];
+    uint32_t uintdata;
 
     /* create packet */
     telem = telemetry_create_packet(9);
@@ -42,15 +43,18 @@ int main(void) {
 
 
     /* extract data */
-    printf("Field count: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_COUNT));
-    printf("Packet type: 0x%x\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_TYPE));
-    printf("Packet number: %d\n", telemetry_read_field_uint32(telem, TELEMETRY_FIELD_PACKET_NUMBER));
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_COUNT);
+    printf("Field count: %d\n", uintdata);
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_PACKET_TYPE);
+    printf("Packet type: 0x%x\n", uintdata);
+    telemetry_read_field_uint32(telem, &uintdata, TELEMETRY_FIELD_PACKET_NUMBER);
+    printf("Packet number: %d\n", uintdata);
 
 
     /* check data */
-    packet_valid_t test;
+    uint8_t test;
     test = telemetry_check_data(telem->data, telem->len);
-    if (test == PACKET_OK) {
+    if (test == TELEMETRY_OK) {
         printf("Packet data OK\n");
     } else {
         printf("Packet data not valid: %d\n", test);

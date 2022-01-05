@@ -128,48 +128,56 @@ uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint
     return TELEMETRY_OK;
 }
 
-uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_number) 
+uint8_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint32_t* data, uint8_t field_number)
 {
     /* check fields */
     if (field_number > packet->len) {
-        return 0;
+        return TELEMETRY_ERROR_FIELD;
+    }
+
+    /* check data */
+    if (data == NULL)  {
+        return TELEMETRY_ERROR_DATA;
     }
     
-    uint32_t data = 0;
+    uint32_t rdata = 0;
     for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
-        data += packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
+        rdata += packet->data[(field_number * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
     
     /* check network byte order */
-    return ntohl(data);
+    *data = ntohl(rdata);
+
+    return TELEMETRY_OK;
 }
 
 
-int32_t telemetry_read_field_int32(telemetry_packet_t* packet, uint8_t field_number) 
+uint8_t telemetry_read_field_int32(telemetry_packet_t* packet, int32_t* data, uint8_t field_number)
 {
-    return (int32_t) telemetry_read_field_uint32(packet, field_number);
+    return telemetry_read_field_uint32(packet, (uint32_t*) data, field_number);
 }
 
 
 
-uint32_t telemetry_read_crc32(telemetry_packet_t* packet) 
+uint8_t telemetry_read_crc32(telemetry_packet_t* packet, uint32_t* crc)
 {   
-    return telemetry_read_field_uint32(packet, packet->len-2);
+    return telemetry_read_field_uint32(packet, crc, packet->len-2);
 }
 
 
 
-float telemetry_read_field_float(telemetry_packet_t* packet, uint8_t field_number) 
+uint8_t telemetry_read_field_float(telemetry_packet_t* packet, float* data, uint8_t field_number)
 {
     /* check fields */
     if (field_number > packet->len) {
-        return 0.0;
+        return TELEMETRY_ERROR_FIELD;
     }
     
-    uint32_t intdata = telemetry_read_field_uint32(packet, field_number);
-    float data;
-    memcpy(&data, &intdata, sizeof(data));
-    return data;
+    uint32_t intdata;
+    telemetry_read_field_uint32(packet, &intdata, field_number);
+    memcpy(data, &intdata, sizeof(float));
+
+    return TELEMETRY_OK;
 }
 
 uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number)
@@ -199,7 +207,7 @@ uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8
 }
 
 
-packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len)
+uint8_t telemetry_check_data(uint8_t* data, uint8_t len)
 {
 
     /* check field counter */
@@ -212,7 +220,7 @@ packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len)
 
 
     if (fields != (len)) {
-        return PACKET_BAD_FIELDS;
+        return TELEMETRY_ERROR_FIELD;
     }
 
     /* check CRC */
@@ -226,10 +234,10 @@ packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len)
     uint32_t calculated_crc = crc32(data+TELEMETRY_BYTES_PER_FIELD, (len-3) * TELEMETRY_BYTES_PER_FIELD);
 
     if (data_crc != calculated_crc) {
-        return PACKET_BAD_CRC;
+        return TELEMETRY_ERROR_CRC;
     }
 
     /* nothing bad detected */
-    return PACKET_OK;
+    return TELEMETRY_OK;
 
 }

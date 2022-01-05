@@ -44,6 +44,7 @@
 #define TELEMETRY_ERROR_FIELD           2
 #define TELEMETRY_ERROR_ALIGN           3
 #define TELEMETRY_ERROR_CRC             4
+#define TELEMETRY_ERROR_DATA            5
 
 
 /* Network byte order */
@@ -68,26 +69,18 @@ typedef struct {
 } telemetry_packet_t;
 
 
-typedef enum {
-  PACKET_OK = 0,
-  PACKET_BAD_CRC = 1,
-  PACKET_BAD_FIELDS = 2,
-  PACKET_BAD_LENGTH = 3,
-} packet_valid_t;
-
-
 telemetry_packet_t* telemetry_create_packet(uint8_t number_fields);
 void telemetry_delete_packet(telemetry_packet_t* packet);
 uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, uint8_t field_number);
 uint8_t telemetry_write_field_int32(telemetry_packet_t* packet, int32_t data, uint8_t field_number);
 uint8_t telemetry_write_field_float(telemetry_packet_t* packet, float data, uint8_t field_number);
 uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number);
-uint32_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint8_t field_number);
-int32_t telemetry_read_field_int32(telemetry_packet_t* packet, uint8_t field_number);
-float telemetry_read_field_float(telemetry_packet_t* packet, uint8_t field_number);
-uint32_t telemetry_read_crc32(telemetry_packet_t* packet);
+uint8_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint32_t* data, uint8_t field_number);
+uint8_t telemetry_read_field_int32(telemetry_packet_t* packet, int32_t* data, uint8_t field_number);
+uint8_t telemetry_read_field_float(telemetry_packet_t* packet, float* data, uint8_t field_number);
+uint8_t telemetry_read_crc32(telemetry_packet_t* packet, uint32_t* crc);
 uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8_t len, uint8_t field_number);
-packet_valid_t telemetry_check_data(uint8_t* data, uint8_t len);
+uint8_t telemetry_check_data(uint8_t* data, uint8_t len);
 
 
 #endif
