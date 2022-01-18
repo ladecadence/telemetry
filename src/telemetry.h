@@ -49,23 +49,19 @@
 
 /* Network byte order */
 
+#define TELEMETRY_LITTLE_ENDIAN 0
+#define TELEMETRY_BIG_ENDIAN    1
+
+
 #define __bswap_32(x) \
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) |                \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-#define ntohl(x) x
-#define htonl(x) x
-#else
-# if __BYTE_ORDER == __LITTLE_ENDIAN
-#  define ntohl(x)  __bswap_32 (x)
-#  define htonl(x)  __bswap_32 (x)
-# endif
-#endif
 
 typedef struct {
   uint8_t* data;
   uint8_t len;          /* in fields */
+  uint8_t endianness;
 } telemetry_packet_t;
 
 

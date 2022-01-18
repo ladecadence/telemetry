@@ -8,6 +8,7 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
         return NULL;
     }
     
+
     /* init packet */
     telemetry_packet_t* packet;
     packet = (telemetry_packet_t*) malloc (sizeof (telemetry_packet_t));
@@ -23,6 +24,15 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     
     packet->data = data;
     
+
+    /* check endianness */
+    int e = 1;
+    if (*((char *)&e) == 1) {
+        packet->endianness = TELEMETRY_LITTLE_ENDIAN;
+    } else {
+        packet->endianness = TELEMETRY_BIG_ENDIAN;
+    }
+
     /* write base data */
     telemetry_write_field_uint32(packet, TELEMETRY_START_MARKER, TELEMETRY_FIELD_START); /* start marker */
     telemetry_write_field_uint32(packet, TELEMETRY_END_MARKER, packet->len-1);           /* end marker */
@@ -30,7 +40,12 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     
     /*  recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
-    crc = htonl(crc); /* endianness */
+
+    /* endianness */
+    if (packet->endianness == TELEMETRY_LITTLE_ENDIAN) {
+        crc = __bswap_32(crc);
+    }
+
     for (int i=0; i<TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
@@ -59,7 +74,8 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
     }
     
     /* use network byte order */
-    data =  htonl(data);
+    if (packet->endianness == TELEMETRY_LITTLE_ENDIAN)
+        data =  __bswap_32 (data);
 
     /* write data */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
@@ -68,7 +84,8 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
     
     /* recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
-    crc = htonl(crc); /* endianness */
+    if (packet->endianness == TELEMETRY_LITTLE_ENDIAN)
+        crc = __bswap_32(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
@@ -120,7 +137,8 @@ uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint
 
     /* recalculate CRC */
     uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
-    crc = htonl(crc); /* endianness */
+    if (packet->endianness == TELEMETRY_LITTLE_ENDIAN)
+        crc = __bswap_32(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
         packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
@@ -146,7 +164,11 @@ uint8_t telemetry_read_field_uint32(telemetry_packet_t* packet, uint32_t* data, 
     }
     
     /* check network byte order */
-    *data = ntohl(rdata);
+    if (packet->endianness == TELEMETRY_LITTLE_ENDIAN) {
+        rdata = __bswap_32 (rdata);
+    }
+
+    *data = rdata;
 
     return TELEMETRY_OK;
 }
@@ -210,13 +232,26 @@ uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8
 uint8_t telemetry_check_data(uint8_t* data, uint8_t len)
 {
 
+    /* check endianness */
+    uint8_t endianness;
+    int e = 1;
+    if (*((char *)&e) == 1) {
+        endianness = TELEMETRY_LITTLE_ENDIAN;
+    } else {
+        endianness = TELEMETRY_BIG_ENDIAN;
+    }
+
+
     /* check field counter */
     uint32_t fields = 0;
     for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
         fields += data[(TELEMETRY_FIELD_COUNT * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
 
-    fields = ntohl(fields) + 3;
+    if (endianness == TELEMETRY_LITTLE_ENDIAN)
+        fields = __bswap_32(fields);
+
+    fields = fields + 3;
 
 
     if (fields != (len)) {
@@ -229,7 +264,8 @@ uint8_t telemetry_check_data(uint8_t* data, uint8_t len)
         data_crc += data[((len-2) * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
 
-    data_crc = ntohl(data_crc);
+    if (endianness == TELEMETRY_LITTLE_ENDIAN)
+        data_crc = __bswap_32(data_crc);
 
     uint32_t calculated_crc = crc32(data+TELEMETRY_BYTES_PER_FIELD, (len-3) * TELEMETRY_BYTES_PER_FIELD);
 
