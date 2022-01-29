@@ -21,7 +21,7 @@ for the payload.
 
 ## Mandatory fields
 
-* 0: Field count       - uint32 (excluding start and end markers and CRC)
+* 0: Field count       - uint32 (excluding CRC)
 * 1: Packet number     - uint32
 * 2: Packet type       - uint32 (0x77777777 - Telemetry packet)
 * 3: Packet flags      - uint32 (see flags section)
