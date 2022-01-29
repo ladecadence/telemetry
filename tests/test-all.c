@@ -11,7 +11,6 @@ int main(void) {
     /* create packet */
     telem = telemetry_create_packet(TELEMETRY_STANDARD_MIN_FIELDS);
     
-    
     /* insert data */
     telemetry_write_field_uint32(telem, 1, TELEMETRY_FIELD_PACKET_NUMBER);
     telemetry_write_field_uint32(telem,  base40_encode("010922"), TELEMETRY_FIELD_DATE);
@@ -52,6 +51,28 @@ int main(void) {
     telemetry_read_crc32(telem, &uintdata);
     printf("CRC: 0x%x\n", uintdata);
     
+
+    printf("Encoded data for transmission:\n");
+    uint8_t* encoded_data;
+    encoded_data = malloc(2 + (telem->len*TELEMETRY_BYTES_PER_FIELD));
+    memset (encoded_data, 0, 2+telem->len*TELEMETRY_BYTES_PER_FIELD);
+    telemetry_encode_data (telem, encoded_data);
+    for (int i=0; i < 2 + telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
+        printf("0x%.2x ", encoded_data[i]);
+    }
+    printf("\n");
+
+
+    printf("Decoded data from transmission:\n");
+    /* clear packet */
+    memset (telem->data, 0xAA, telem->len*TELEMETRY_BYTES_PER_FIELD);
+    telemetry_decode_data (encoded_data, 2+telem->len*TELEMETRY_BYTES_PER_FIELD, telem);
+    for (int i=0; i < telem->len*TELEMETRY_BYTES_PER_FIELD; i++) {
+        printf("0x%.2x ", telem->data[i]);
+    }
+    printf("\n");
+
+    free(encoded_data);
     telemetry_delete_packet(telem);
     
     return 0;

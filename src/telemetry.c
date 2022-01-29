@@ -12,7 +12,7 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     /* init packet */
     telemetry_packet_t* packet;
     packet = (telemetry_packet_t*) malloc (sizeof (telemetry_packet_t));
-    packet->len = number_fields + 3;
+    packet->len = number_fields + 1;
     
     /* reserve data (fields + start + crc + end * bytes per field)  */
     uint8_t* data = calloc((packet->len * TELEMETRY_BYTES_PER_FIELD), sizeof(uint8_t));
@@ -34,12 +34,10 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     }
 
     /* write base data */
-    telemetry_write_field_uint32(packet, TELEMETRY_START_MARKER, TELEMETRY_FIELD_START); /* start marker */
-    telemetry_write_field_uint32(packet, TELEMETRY_END_MARKER, packet->len-1);           /* end marker */
     telemetry_write_field_uint32 (packet, number_fields, TELEMETRY_FIELD_COUNT);         /* number of fields */
     
     /*  recalculate CRC */
-    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    uint32_t crc = crc32(packet->data, (packet->len-1) * TELEMETRY_BYTES_PER_FIELD);
 
     /* endianness */
     if (packet->endianness == TELEMETRY_LITTLE_ENDIAN) {
@@ -47,7 +45,7 @@ telemetry_packet_t* telemetry_create_packet(uint8_t number_fields)
     }
 
     for (int i=0; i<TELEMETRY_BYTES_PER_FIELD; i++) {
-        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
+        packet->data[((packet->len-1) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
     
     return packet;
@@ -83,11 +81,11 @@ uint8_t telemetry_write_field_uint32(telemetry_packet_t* packet, uint32_t data, 
     }
     
     /* recalculate CRC */
-    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    uint32_t crc = crc32(packet->data, (packet->len-1) * TELEMETRY_BYTES_PER_FIELD);
     if (packet->endianness == TELEMETRY_LITTLE_ENDIAN)
         crc = __bswap_32(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
-        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
+        packet->data[((packet->len-1) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
     
     return TELEMETRY_OK;
@@ -126,7 +124,7 @@ uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint
     }
 
     /* and must fit */
-    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 3 - (field_number-1))) {
+    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 1 - (field_number-1))) {
         return TELEMETRY_ERROR_LENGTH;
     }
 
@@ -136,11 +134,11 @@ uint8_t telemetry_write_raw_data(telemetry_packet_t* packet, uint8_t* data, uint
     }
 
     /* recalculate CRC */
-    uint32_t crc = crc32(&packet->data[1*TELEMETRY_BYTES_PER_FIELD], (packet->len-3) * TELEMETRY_BYTES_PER_FIELD);
+    uint32_t crc = crc32(packet->data, (packet->len-1) * TELEMETRY_BYTES_PER_FIELD);
     if (packet->endianness == TELEMETRY_LITTLE_ENDIAN)
         crc = __bswap_32(crc); /* endianness */
     for (int i = 0; i < TELEMETRY_BYTES_PER_FIELD; i++) {
-        packet->data[((packet->len-2) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
+        packet->data[((packet->len-1) * TELEMETRY_BYTES_PER_FIELD) + i] = crc >> i*8;
     }
 
     return TELEMETRY_OK;
@@ -180,12 +178,10 @@ uint8_t telemetry_read_field_int32(telemetry_packet_t* packet, int32_t* data, ui
 }
 
 
-
 uint8_t telemetry_read_crc32(telemetry_packet_t* packet, uint32_t* crc)
 {   
-    return telemetry_read_field_uint32(packet, crc, packet->len-2);
+    return telemetry_read_field_uint32(packet, crc, packet->len-1);
 }
-
 
 
 uint8_t telemetry_read_field_float(telemetry_packet_t* packet, float* data, uint8_t field_number)
@@ -215,7 +211,7 @@ uint8_t telemetry_read_raw_data(telemetry_packet_t* packet, uint8_t* data, uint8
     }
 
     /* and must have enough data */
-    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 3 - (field_number-1))) {
+    if ((len / TELEMETRY_BYTES_PER_FIELD) > (packet->len - 1 - (field_number-1))) {
         return TELEMETRY_ERROR_LENGTH;
     }
 
@@ -251,7 +247,7 @@ uint8_t telemetry_check_data(uint8_t* data, uint8_t len)
     if (endianness == TELEMETRY_LITTLE_ENDIAN)
         fields = __bswap_32(fields);
 
-    fields = fields + 3;
+    fields = fields + 1;
 
 
     if (fields != (len)) {
@@ -261,17 +257,53 @@ uint8_t telemetry_check_data(uint8_t* data, uint8_t len)
     /* check CRC */
     uint32_t data_crc = 0;
     for (int i=TELEMETRY_BYTES_PER_FIELD-1; i>=0; i--) {
-        data_crc += data[((len-2) * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
+        data_crc += data[((len-1) * TELEMETRY_BYTES_PER_FIELD) + i] << 8*i;
     }
 
     if (endianness == TELEMETRY_LITTLE_ENDIAN)
         data_crc = __bswap_32(data_crc);
 
-    uint32_t calculated_crc = crc32(data+TELEMETRY_BYTES_PER_FIELD, (len-3) * TELEMETRY_BYTES_PER_FIELD);
+    uint32_t calculated_crc = crc32(data, (len-1) * TELEMETRY_BYTES_PER_FIELD);
 
     if (data_crc != calculated_crc) {
         return TELEMETRY_ERROR_CRC;
     }
+
+    /* nothing bad detected */
+    return TELEMETRY_OK;
+
+}
+
+uint8_t telemetry_encode_data(telemetry_packet_t* packet, uint8_t* encoded_data) {
+    /* check data */
+    if (encoded_data == NULL)  {
+        return TELEMETRY_ERROR_DATA;
+    }
+
+    cobs_encode (packet->data, packet->len*TELEMETRY_BYTES_PER_FIELD, encoded_data);
+
+    /* nothing bad detected */
+    return TELEMETRY_OK;
+}
+
+uint8_t telemetry_decode_data(uint8_t* encoded_data, uint8_t len, telemetry_packet_t* packet) {
+    /* check data */
+    if (encoded_data == NULL)  {
+        return TELEMETRY_ERROR_DATA;
+    }
+
+    /* check packet */
+    if (packet == NULL)  {
+        return TELEMETRY_ERROR_PACKET;
+    }
+
+    /* check packet lenght*/
+    if (packet->len*TELEMETRY_BYTES_PER_FIELD < len-2) {
+        return TELEMETRY_ERROR_LENGTH;
+    }
+
+    /* ok, decode */
+    cobs_decode(encoded_data, len, packet->data);
 
     /* nothing bad detected */
     return TELEMETRY_OK;
