@@ -40,6 +40,7 @@
 /* flags */
 #define FLAG_MULTIPACKET                31
 #define FLAG_TEST_PACKET                30
+#define FLAG_SUBPACKET_COUNT            15
 #define FLAG_SUBPACKET_NUMBER           7
 
 /* packet types */
